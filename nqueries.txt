@@ -1,0 +1,235 @@
+- Questão 1.1 (Qual a taxa de aprovação de clientes?)
+
+> Status:
+
+select  b.CreditStatus,
+        count(a.Clientid) as qtd_clientes
+from clients a 
+left join creditstatus b
+on a.Clientid = b.Clientid
+where b.creditStatus IS NOT NULL
+group by b.CreditStatus
+
+> Taxa de aprovação:
+
+select 
+	case
+		when B.CreditStatus = 'Ativo' then 'Aprovados'
+		when B.CreditStatus = 'Bloqueado' then  'Aprovados'
+		when B.CreditStatus = 'Aprovado' then 'Aprovados'
+		when B.CreditStatus = 'Reprovado' then 'Reprovados'
+	end as Status_aprovacao,
+	count(a.Clientid) as taxa_aprovacao
+from clients a 
+left join creditstatus b
+on a.Clientid = b.Clientid
+where b.creditStatus IS NOT NULL
+group by Status_aprovacao
+---------------------------------------------------------------------
+- Questão 1.2 (Características dos clientes taxa de aprovação)
+
+> Renda:
+
+select 
+       case
+           when PresumedIncome <= 200 then 'Entre 0 e 200'
+           when PresumedIncome <= 401 then 'Entre 201 e 401'
+           when PresumedIncome <= 602 then 'Entre 402 e 602'
+           when PresumedIncome <= 803 then 'Entre 602 e 803'
+           when PresumedIncome <= 1004 then 'Entre 803 e 1004'
+           when PresumedIncome <= 1205 then 'Entre 1004 e 1205'
+           when PresumedIncome <= 1406 then 'Entre 1205 e 1406'
+           when PresumedIncome <= 1607 then 'Entre 1406 e 1607'
+           when PresumedIncome <= 1808 then 'Entre 1607 e 1808'
+           when PresumedIncome <= 2009 then 'Entre 1808 e 2009'
+           when PresumedIncome >= 2010 then 'Maior que 2010'
+       end as renda,
+       count(a.Clientid) as qtd_clientes
+from clients a 
+left join creditstatus b
+on a.Clientid = b.Clientid
+where b.creditStatus <> 'Reprovado'
+and b.creditStatus IS NOT NULL
+group by renda
+
+> Gender:
+
+select 
+       gender,
+       count(a.Clientid) as qtd_aprovacao_clientes
+from clients a 
+left join creditstatus b
+on a.Clientid = b.Clientid
+where b.creditStatus <> 'Reprovado'
+and b.creditStatus IS NOT NULL
+group by gender
+
+> AdressState:
+
+select 
+       AdressState,
+       count(a.Clientid) as qtd_aprovacao_clientes
+from clients a 
+left join creditstatus b
+on a.Clientid = b.Clientid
+where b.creditStatus <> 'Reprovado'
+and b.creditStatus IS NOT NULL
+group by AdressState
+
+> Idade:
+
+select 
+       case 
+           when timestampdiff(year,Birthdate,CURRENT_DATE) <= 27 then 'Até 27 anos'
+           when timestampdiff(year,Birthdate,CURRENT_DATE) <= 37 then 'Até 37 anos'
+           when timestampdiff(year,Birthdate,CURRENT_DATE) <= 47 then 'Até 47 anos'
+	   when timestampdiff(year,Birthdate,CURRENT_DATE) <= 57 then 'Até 57 anos'
+	   when timestampdiff(year,Birthdate,CURRENT_DATE) <= 67 then 'Até 67 anos'
+	   when timestampdiff(year,Birthdate,CURRENT_DATE) >= 68 then 'Mais de 67 anos'
+       end as idade,
+       count(a.Clientid) as qtd_aprovacao_clientes
+from clients a 
+left join creditstatus b
+on a.Clientid = b.Clientid
+where b.creditStatus <> 'Reprovado'
+and b.creditStatus IS NOT NULL
+group by idade
+--------------------------------------------------------------------------------------------------
+
+- Questão 2.1: (Over 30 Mob 3)
+
+select
+       year(FirstInvoiceDate) * 100 + month(FirstInvoiceDate) as anomes,
+		   (select
+		          count(distinct b.ClientID) as Clientes
+		    from invoicestatus b
+		    where timestampdiff(month,b.FirstInvoiceDate,b.InvoiceDueDate) + 1 >= 3
+		    and b.FirstInvoiceDate <= '2019-11-05'
+		    and year(b.FirstInvoiceDate) * 100 + month(b.FirstInvoiceDate) = year(a.FirstInvoiceDate) * 100 + month(a.FirstInvoiceDate)) as qtd_clientes,
+       count(a.ClientID) as clientes_over30mob3,
+       sum(InvoiceValue) as valor_atraso       
+from invoicestatus a
+where timestampdiff(month,FirstInvoiceDate,InvoiceDueDate) + 1 = 3
+and OverdueDays >= 30 
+and FirstInvoiceDate <= '2019-11-05'
+GROUP BY anomes
+ORDER BY anomes
+
+- Questão 2.2: (Variáveis mais relevantes para a taxa de inadimplência)
+
+> Status:
+
+select Invoicestatus,
+       count(distinct ClientId) as qtd_clientes_inadimplentes
+from invoicestatus
+group by Invoicestatus
+
+> Gender:
+
+select b.gender,
+       count(distinct a.ClientId) as qtd_clientes_inadimplentes
+from invoicestatus a
+left join clients b
+on a.Clientid = b.Clientid
+where Invoicestatus = 'INADIMPLENTE'
+and gender IS NOT NULL
+group by gender
+
+>Idade:
+
+select 
+      case 
+          when timestampdiff(year,Birthdate,CURRENT_DATE) <= 27 then 'Até 27 anos'
+          when timestampdiff(year,Birthdate,CURRENT_DATE) <= 37 then 'Até 37 anos'
+          when timestampdiff(year,Birthdate,CURRENT_DATE) <= 47 then 'Até 47 anos'
+	  when timestampdiff(year,Birthdate,CURRENT_DATE) <= 57 then 'Até 57 anos'
+	  when timestampdiff(year,Birthdate,CURRENT_DATE) <= 67 then 'Até 67 anos'
+          when timestampdiff(year,Birthdate,CURRENT_DATE) >= 68 then 'Mais de 67 anos'
+       end as idade,
+       count(distinct a.ClientId) as qtd_clientes_inadimplentes
+from invoicestatus a
+left join clients b
+on a.Clientid = b.Clientid
+where Invoicestatus = 'INADIMPLENTE'
+and timestampdiff(year,Birthdate,CURRENT_DATE) IS NOT NULL
+group by idade
+
+> Renda:
+
+select 
+      case
+           when PresumedIncome <= 200 then 'Entre 0 e 200'
+	   when PresumedIncome <= 401 then 'Entre 201 e 401'
+	   when PresumedIncome <= 602 then 'Entre 402 e 602'
+           when PresumedIncome <= 803 then 'Entre 602 e 803'
+           when PresumedIncome <= 1004 then 'Entre 803 e 1004'
+           when PresumedIncome <= 1205 then 'Entre 1004 e 1205'
+           when PresumedIncome <= 1406 then 'Entre 1205 e 1406'
+           when PresumedIncome <= 1607 then 'Entre 1406 e 1607'
+           when PresumedIncome <= 1808 then 'Entre 1607 e 1808'
+           when PresumedIncome <= 2009 then 'Entre 1808 e 2009'
+           when PresumedIncome >= 2010 then 'Maior que 2010'
+       end as renda,
+       count(distinct a.ClientId) as qtd_clientes_inadimplentes
+from invoicestatus a
+left join clients b
+on a.Clientid = b.Clientid
+where Invoicestatus = 'INADIMPLENTE'
+and PresumedIncome IS NOT NULL
+group by renda
+-------------------------------------------------------------------------------------
+
+- Questão 3.1: (Preocupação aumento da inadimplência no segundo semestre de 2019 está correta?)
+
+select year(FirstInvoiceDate) * 100 + month(FirstInvoiceDate) as anomes,
+       count(distinct ClientId) as qtd_clientes_inadimplentes,
+       avg(ClientId) as media
+from invoicestatus
+where Invoicestatus = 'INADIMPLENTE'
+group by anomes
+
+
+
+- Questão 3.2: (Possiveis causas do aumento da inadimplência)
+
+select 
+      year(FirstInvoiceDate) * 100 + month(FirstInvoiceDate) as anomes,
+      count(a.Clientid) as qtd_aprovacao_clientes
+from clients a 
+left join creditstatus b
+on a.Clientid = b.Clientid
+left join invoicestatus c
+on a.Clientid = c.Clientid
+where b.creditStatus <> 'Reprovado'
+and year(FirstInvoiceDate) * 100 + month(FirstInvoiceDate) IS NOT NULL
+group by anomes
+order by anomes
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
